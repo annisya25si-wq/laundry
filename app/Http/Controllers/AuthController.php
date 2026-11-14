@@ -42,10 +42,10 @@ class AuthController extends Controller
             }
 
             if ($user->role === 'admin') {
-                return redirect()->intended('/admin/dashboard')->with('success', 'Selamat datang kembali, ' . $user->name . '!');
+                return redirect()->route('admin.dashboard')->with('success', 'Selamat datang kembali, ' . $user->name . '!');
             }
 
-            return redirect()->intended('/')->with('success', 'Login berhasil! Selamat datang di Éclat Laundry.');
+            return redirect()->route('pelanggan.dashboard')->with('success', 'Login berhasil! Selamat datang di Éclat Laundry.');
         }
 
         return back()->withInput($request->only('login'))
@@ -59,7 +59,7 @@ class AuthController extends Controller
 
     public function register(Request $request)
     {
-       $request->validate([
+        $request->validate([
             'name' => 'required|string|max:100',
             'username' => 'required|string|max:50|alpha_dash|unique:users,username',
             'email' => 'required|email|max:100|unique:users,email',
@@ -83,7 +83,7 @@ class AuthController extends Controller
 
         Auth::login($user);
 
-        return redirect('/')->with('success', 'Registrasi berhasil! Selamat datang di Éclat Laundry.');
+        return redirect()->route('pelanggan.dashboard')->with('success', 'Registrasi berhasil! Selamat datang di Éclat Laundry.');
     }
 
     public function logout(Request $request)
