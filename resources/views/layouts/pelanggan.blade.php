@@ -21,6 +21,8 @@
         }
         .sidebar {
             width: 265px;
+            min-width: 265px;
+            flex-shrink: 0;
             min-height: 100vh;
             background-color: #FFFFFF;
             border-right: 1px solid var(--pink-border);
@@ -33,6 +35,7 @@
             display: flex;
             align-items: center;
             gap: 12px;
+            white-space: nowrap;
             transition: all 0.2s;
         }
         .sidebar .nav-link:hover,
@@ -61,21 +64,67 @@
             border: 1px solid var(--pink-border);
             border-radius: 20px;
         }
+        .avatar-circle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: var(--pink-primary);
+            color: #FFFFFF;
+            font-weight: 700;
+            font-size: 16px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-transform: uppercase;
+            flex-shrink: 0;
+        }
+        .btn-notif {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background-color: #FFFFFF;
+            border: 1px solid var(--pink-border);
+            color: #2D3142;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            transition: all 0.2s;
+        }
+        .btn-notif:hover {
+            background-color: var(--pink-soft);
+            color: var(--pink-primary);
+        }
+        .notif-dot {
+            position: absolute;
+            top: 9px;
+            right: 10px;
+            width: 8px;
+            height: 8px;
+            background-color: var(--pink-primary);
+            border-radius: 50%;
+            border: 2px solid #FFFFFF;
+        }
     </style>
 </head>
 <body>
+    @php
+        $user = auth()->user();
+        $inisial = strtoupper(substr($user->name ?? 'U', 0, 1));
+        $notifikasiPesanans = \App\Models\Pesanan::where('user_id', $user->id)
+            ->latest('updated_at')
+            ->take(5)
+            ->get();
+        $adaNotifBaru = $notifikasiPesanans->whereIn('status_pesanan', ['menunggu', 'diproses', 'dicuci', 'disetrika', 'selesai'])->count() > 0;
+    @endphp
+
     <div class="d-flex">
-        <!-- Sidebar Pelanggan (White + Pink) -->
+        <!-- Sidebar Pelanggan -->
         <aside class="sidebar p-4 d-flex flex-column justify-content-between">
             <div>
                 <a href="{{ route('home') }}" class="text-decoration-none d-flex align-items-center gap-2 fs-4 fw-bold text-pink mb-4">
                     <i class="bi bi-stars"></i> Éclat Laundry
                 </a>
-
-                <div class="p-3 rounded-4 bg-pink-soft mb-4">
-                    <small class="text-muted d-block">Member Pelanggan</small>
-                    <span class="fw-bold text-dark">{{ auth()->user()->name }}</span>
-                </div>
 
                 <nav class="nav flex-column gap-1">
                     <a class="nav-link {{ request()->routeIs('pelanggan.dashboard') ? 'active' : '' }}" href="{{ route('pelanggan.dashboard') }}">
@@ -112,10 +161,98 @@
             </div>
         </aside>
 
-        <!-- Main Content -->
-        <main class="flex-grow-1 p-4 p-lg-5">
-            @yield('content')
-        </main>
+        <!-- Main Content Area -->
+        <div class="flex-grow-1 d-flex flex-column">
+            <!-- Top Header Bar -->
+           <header class="px-4 px-lg-5 pt-4 pb-2 d-flex justify-content-end align-items-center gap-3 position-relative" style="z-index: 1050;">
+                <!-- Dropdown Lonceng Notifikasi -->
+                <div class="dropdown">
+                    <button class="btn-notif" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Notifikasi">
+                        <i class="bi bi-bell fs-5"></i>
+                        @if($adaNotifBaru)
+                            <span class="notif-dot"></span>
+                        @endif
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-end border-0 shadow-sm rounded-4 p-3 mt-2" style="width: 330px; border: 1px solid var(--pink-border) !important;">
+                        <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                            <span class="fw-bold small">Notifikasi Pesanan</span>
+                            <span class="badge bg-pink-soft text-pink rounded-pill">{{ $notifikasiPesanans->count() }} Terbaru</span>
+                        </div>
+
+                        <div style="max-height: 280px; overflow-y: auto;">
+                            @forelse($notifikasiPesanans as $notif)
+                                @php
+                                    $status = strtolower($notif->status_pesanan);
+                                    if ($status === 'menunggu') {
+                                        $judul = 'Menunggu Drop-off';
+                                        $pesan = "Pesanan {$notif->kode_pesanan} dibuat. Silakan antar cucian ke outlet.";
+                                        $ikon = 'bi-hourglass-split text-warning';
+                                        $link = route('pelanggan.status');
+                                    } elseif (in_array($status, ['diproses', 'dicuci', 'disetrika'])) {
+                                        $judul = 'Cucian Sedang ' . ucfirst($status);
+                                        $pesan = "Pesanan {$notif->kode_pesanan} sedang dikerjakan oleh tim Éclat.";
+                                        $ikon = 'bi-arrow-repeat text-pink';
+                                        $link = route('pelanggan.status');
+                                    } else {
+                                        $judul = 'Cucian Selesai! ✨';
+                                        $pesan = "Pesanan {$notif->kode_pesanan} sudah bersih & siap diambil di outlet.";
+                                        $ikon = 'bi-check-circle-fill text-success';
+                                        $link = route('pelanggan.riwayat');
+                                    }
+                                @endphp
+
+                                <a href="{{ $link }}" class="text-decoration-none d-block p-2 rounded-3 mb-2 {{ $status !== 'selesai' ? 'bg-pink-soft' : 'bg-light' }}">
+                                    <div class="d-flex align-items-start gap-2">
+                                        <i class="bi {{ $ikon }} fs-5 mt-1"></i>
+                                        <div>
+                                            <p class="mb-0 fw-semibold text-dark small">{{ $judul }}</p>
+                                            <span class="text-muted d-block" style="font-size: 12px;">{{ $pesan }}</span>
+                                            <small class="text-muted" style="font-size: 10px;">{{ $notif->updated_at->diffForHumans() }}</small>
+                                        </div>
+                                    </div>
+                                </a>
+                            @empty
+                                <div class="p-3 rounded-3 bg-pink-soft text-center small">
+                                    <p class="mb-1 fw-semibold text-dark">Belum ada aktivitas pesanan</p>
+                                    <span class="text-muted" style="font-size: 12px;">Gunakan kode <strong>ECLATBARU</strong> untuk pesanan pertamamu!</span>
+                                </div>
+                            @endforelse
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dropdown Profil Pelanggan -->
+                <div class="dropdown">
+                    <button class="btn border-0 bg-white rounded-pill py-1 ps-3 pe-1 d-flex align-items-center gap-2"
+                            style="border: 1px solid var(--pink-border) !important;"
+                            type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <span class="fw-semibold small text-dark">{{ $user->name }}</span>
+                        <div class="avatar-circle" style="width: 34px; height: 34px; font-size: 14px;">
+                            {{ $inisial }}
+                        </div>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end border-0 shadow-sm rounded-4 p-2 mt-2" style="min-width: 200px;">
+                        <li class="px-3 py-2 border-bottom mb-1">
+                            <small class="text-muted d-block">Login sebagai</small>
+                            <span class="fw-bold small">{{ $user->email }}</span>
+                        </li>
+                        <li>
+                            <form action="{{ route('logout') }}" method="POST">
+                                @csrf
+                                <button type="submit" class="dropdown-item rounded-3 py-2 small text-danger">
+                                    <i class="bi bi-box-arrow-right me-2"></i>Keluar
+                                </button>
+                            </form>
+                        </li>
+                    </ul>
+                </div>
+            </header>
+
+            <!-- Konten Utama Halaman -->
+            <main class="flex-grow-1 px-4 px-lg-5 pb-5 pt-2">
+                @yield('content')
+            </main>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

@@ -2,10 +2,38 @@
 @section('title', 'Buat Pesanan Laundry')
 
 @section('content')
+<style>
+    .layanan-card {
+        border: 1.5px solid var(--pink-border);
+        border-radius: 14px;
+        background: #FFFFFF;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        overflow: hidden;
+    }
+    .layanan-card:hover {
+        border-color: var(--pink-primary);
+        transform: translateY(-1px);
+    }
+    .layanan-radio:checked + .layanan-card {
+        border-color: var(--pink-primary);
+        background-color: var(--pink-soft);
+        box-shadow: 0 4px 12px rgba(255, 107, 157, 0.15);
+    }
+    .layanan-thumb {
+        width: 72px;
+        height: 72px;
+        border-radius: 10px;
+        object-fit: cover;
+        flex-shrink: 0;
+        background: linear-gradient(135deg, #FFF0F5 0%, #FFE0EC 100%);
+    }
+</style>
+
 <div class="mb-4">
     <span class="badge bg-pink-soft text-pink px-3 py-2 rounded-pill fw-semibold mb-2">Online Booking</span>
     <h3 class="fw-bold mb-1">Buat Pesanan Laundry</h3>
-    <p class="text-muted mb-0">Lengkapi detail cucian Anda untuk mendapatkan kode pesanan instan.</p>
+    <p class="text-muted mb-0">Pilih jenis layanan dengan gambar dan atur perkiraan berat cucian Anda.</p>
 </div>
 
 @if($errors->any())
@@ -21,22 +49,55 @@
 <form action="{{ route('pelanggan.pesanan.store') }}" method="POST" id="formPesanan">
     @csrf
     <div class="row g-4">
-        <!-- Kolom Kiri: Form Isian -->
+        <!-- Kolom Kiri: Pilihan Layanan Bergambar & Form Isian -->
         <div class="col-lg-7">
             <div class="card-pink p-4 p-md-5">
-                <div class="mb-4">
-                    <label class="form-label fw-semibold">Pilih Layanan Laundry</label>
-                    <select name="layanan_id" id="layanan_id" class="form-select form-select-lg rounded-3" required>
-                        <option value="" data-harga="0" data-satuan="kg">-- Pilih Jenis Layanan --</option>
-                        @foreach($layanans as $layanan)
-                            <option value="{{ $layanan->id }}"
-                                    data-harga="{{ $layanan->harga }}"
-                                    data-satuan="{{ $layanan->satuan ?? 'kg' }}"
-                                    {{ old('layanan_id') == $layanan->id ? 'selected' : '' }}>
-                                {{ $layanan->nama_layanan }} — Rp {{ number_format($layanan->harga, 0, ',', '.') }}/{{ $layanan->satuan ?? 'kg' }}
-                            </option>
+             <div class="mb-4">
+                    <label class="form-label fw-semibold mb-2">Pilih Layanan Laundry</label>
+                    <div class="row g-2">
+                        @foreach($layanans as $index => $layanan)
+                            @php
+                                $namaLower = strtolower($layanan->nama_layanan);
+                                if (!empty($layanan->gambar)) {
+                                    $imgUrl = asset('storage/' . $layanan->gambar);
+                                } elseif (str_contains($namaLower, 'setrika')) {
+                                    $imgUrl = 'https://images.unsplash.com/photo-1582735689369-4fe89db7114c?auto=format&fit=crop&w=300&q=80';
+                                } elseif (str_contains($namaLower, 'express') || str_contains($namaLower, 'kilat')) {
+                                    $imgUrl = 'https://images.unsplash.com/photo-1545173168-9f1947eebb7f?auto=format&fit=crop&w=300&q=80';
+                                } elseif (str_contains($namaLower, 'dry') || str_contains($namaLower, 'jas') || str_contains($namaLower, 'bed')) {
+                                    $imgUrl = 'https://images.unsplash.com/photo-1517677208171-0bc6725a3e60?auto=format&fit=crop&w=300&q=80';
+                                } else {
+                                    $imgUrl = 'https://images.unsplash.com/photo-1604335399105-a0c585fd81a1?auto=format&fit=crop&w=300&q=80';
+                                }
+                            @endphp
+                            <div class="col-sm-6">
+                                <label class="w-100 h-100 mb-0">
+                                    <input type="radio"
+                                           name="layanan_id"
+                                           value="{{ $layanan->id }}"
+                                           class="d-none layanan-radio"
+                                           data-nama="{{ $layanan->nama_layanan }}"
+                                           data-harga="{{ $layanan->harga }}"
+                                           data-satuan="{{ $layanan->satuan ?? 'kg' }}"
+                                           {{ old('layanan_id') == $layanan->id ? 'checked' : '' }}
+                                           required>
+                                    <div class="layanan-card h-100 p-2 d-flex align-items-center gap-2">
+                                        <img src="{{ $imgUrl }}" alt="{{ $layanan->nama_layanan }}" class="layanan-thumb">
+                                        <div class="overflow-hidden flex-grow-1">
+                                            <h6 class="fw-bold text-dark mb-0 text-truncate" style="font-size: 13px;">{{ $layanan->nama_layanan }}</h6>
+                                            @if(!empty($layanan->deskripsi))
+                                                <p class="text-muted mb-1 text-truncate" style="font-size: 11px;">{{ $layanan->deskripsi }}</p>
+                                            @endif
+                                            <div class="d-flex align-items-center gap-1">
+                                                <span class="fw-bold text-pink" style="font-size: 13px;">Rp {{ number_format($layanan->harga, 0, ',', '.') }}</span>
+                                                <span class="badge bg-pink-soft text-pink rounded-pill" style="font-size: 10px;">/{{ $layanan->satuan ?? 'kg' }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
                         @endforeach
-                    </select>
+                    </div>
                 </div>
 
                 <div class="mb-4">
@@ -59,13 +120,15 @@
                         <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
                             <small class="text-muted">Klik promo tersedia:</small>
                             @foreach($vouchers as $v)
+                                @php $minBerat = $v->minimal_berat ?? 3; @endphp
                                 <button type="button"
                                         class="badge border-0 bg-pink-soft text-pink px-3 py-2 rounded-pill btn-pilih-voucher"
                                         data-kode="{{ $v->kode_voucher }}"
                                         data-tipe="{{ $v->tipe_diskon ?? 'nominal' }}"
                                         data-nilai="{{ $v->nilai_diskon }}"
-                                        data-min="{{ $v->minimal_transaksi ?? 0 }}">
-                                    <i class="bi bi-ticket-perforated me-1"></i> Kode: {{ $v->kode_voucher }}
+                                        data-min="{{ $v->minimal_transaksi ?? 0 }}"
+                                        data-minberat="{{ $minBerat }}">
+                                    <i class="bi bi-ticket-perforated me-1"></i> {{ $v->kode_voucher }} (Min. {{ $minBerat }} kg)
                                 </button>
                             @endforeach
                         </div>
@@ -80,7 +143,7 @@
             </div>
         </div>
 
-        <!-- Kolom Kanan: Ringkasan & Estimasi Harga Real-time -->
+        <!-- Kolom Kanan: Ringkasan & Validasi Minimal Berat Voucher -->
         <div class="col-lg-5">
             <div class="card-pink p-4 p-md-5 sticky-top" style="top: 24px;">
                 <h5 class="fw-bold mb-4"><i class="bi bi-receipt text-pink me-2"></i>Ringkasan Pesanan</h5>
@@ -97,9 +160,22 @@
                     <span class="text-muted">Subtotal</span>
                     <span class="fw-semibold" id="ringkasanSubtotal">Rp 0</span>
                 </div>
-                <div class="d-flex justify-content-between mb-3 text-success">
-                    <span>Potongan Voucher</span>
-                    <span class="fw-semibold" id="ringkasanDiskon">- Rp 0</span>
+
+                <!-- Baris Potongan Voucher + Syarat Minimal Berat -->
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <span class="text-success">Potongan Voucher</span>
+                        <small class="d-block text-muted" id="infoSyaratVoucher" style="font-size: 11px;">
+                            Pilih/masukkan voucher (Min. 3 kg)
+                        </small>
+                    </div>
+                    <span class="fw-semibold text-success" id="ringkasanDiskon">- Rp 0</span>
+                </div>
+
+                <!-- Peringatan jika berat belum memenuhi syarat voucher -->
+                <div id="alertMinimalBerat" class="alert alert-warning border-0 rounded-3 py-2 px-3 small d-none mb-3">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                    <span id="teksMinimalBerat"></span>
                 </div>
 
                 <hr style="border-color: var(--pink-border);">
@@ -126,10 +202,14 @@
 </form>
 
 <script>
-    const selectLayanan = document.getElementById('layanan_id');
+    const radioLayanans = document.querySelectorAll('.layanan-radio');
     const inputJumlah = document.getElementById('jumlah');
     const inputVoucher = document.getElementById('kode_voucher');
     const voucherBtns = document.querySelectorAll('.btn-pilih-voucher');
+
+    const alertMinimalBerat = document.getElementById('alertMinimalBerat');
+    const teksMinimalBerat = document.getElementById('teksMinimalBerat');
+    const infoSyaratVoucher = document.getElementById('infoSyaratVoucher');
 
     let activeVoucher = null;
 
@@ -138,23 +218,39 @@
     }
 
     function hitungTotal() {
-        const option = selectLayanan.options[selectLayanan.selectedIndex];
-        const harga = parseFloat(option.dataset.harga || 0);
-        const satuan = option.dataset.satuan || 'kg';
+        const selected = document.querySelector('.layanan-radio:checked');
+        const harga = selected ? parseFloat(selected.dataset.harga || 0) : 0;
+        const satuan = selected ? (selected.dataset.satuan || 'kg') : 'kg';
+        const namaLayanan = selected ? selected.dataset.nama : 'Belum dipilih';
         const jumlah = parseFloat(inputJumlah.value || 0);
         const subtotal = harga * jumlah;
 
         let diskon = 0;
-        if (activeVoucher && subtotal >= activeVoucher.min) {
-            if (activeVoucher.tipe === 'persen') {
-                diskon = (subtotal * activeVoucher.nilai) / 100;
+        alertMinimalBerat.classList.add('d-none');
+
+        if (activeVoucher) {
+            const minBerat = activeVoucher.minBerat || 3;
+            infoSyaratVoucher.innerText = `Kode ${activeVoucher.kode} (Syarat min. ${minBerat} ${satuan})`;
+
+            if (jumlah < minBerat) {
+                alertMinimalBerat.classList.remove('d-none');
+                teksMinimalBerat.innerText = `Berat masih ${jumlah} ${satuan}. Tambah hingga minimal ${minBerat} ${satuan} untuk mengaktifkan voucher ${activeVoucher.kode}.`;
+            } else if (subtotal < activeVoucher.min) {
+                alertMinimalBerat.classList.remove('d-none');
+                teksMinimalBerat.innerText = `Minimal transaksi untuk voucher ${activeVoucher.kode} adalah ${formatRupiah(activeVoucher.min)}.`;
             } else {
-                diskon = activeVoucher.nilai;
+                if (activeVoucher.tipe === 'persen') {
+                    diskon = (subtotal * activeVoucher.nilai) / 100;
+                } else {
+                    diskon = activeVoucher.nilai;
+                }
             }
+        } else {
+            infoSyaratVoucher.innerText = 'Syarat voucher berlaku minimal 3 kg';
         }
 
         document.getElementById('labelSatuan').innerText = satuan;
-        document.getElementById('ringkasanLayanan').innerText = harga > 0 ? option.text.split('—')[0].trim() : 'Belum dipilih';
+        document.getElementById('ringkasanLayanan').innerText = namaLayanan;
         document.getElementById('ringkasanJumlah').innerText = jumlah + ' ' + satuan;
         document.getElementById('ringkasanSubtotal').innerText = formatRupiah(subtotal);
         document.getElementById('ringkasanDiskon').innerText = '- ' + formatRupiah(diskon);
@@ -168,13 +264,31 @@
                 kode: btn.dataset.kode,
                 tipe: btn.dataset.tipe,
                 nilai: parseFloat(btn.dataset.nilai || 0),
-                min: parseFloat(btn.dataset.min || 0)
+                min: parseFloat(btn.dataset.min || 0),
+                minBerat: parseFloat(btn.dataset.minberat || 3)
             };
             hitungTotal();
         });
     });
 
-    selectLayanan.addEventListener('change', hitungTotal);
+    inputVoucher.addEventListener('input', () => {
+        const kodeKetik = inputVoucher.value.trim().toUpperCase();
+        const cocok = Array.from(voucherBtns).find(b => b.dataset.kode.toUpperCase() === kodeKetik);
+        if (cocok) {
+            activeVoucher = {
+                kode: cocok.dataset.kode,
+                tipe: cocok.dataset.tipe,
+                nilai: parseFloat(cocok.dataset.nilai || 0),
+                min: parseFloat(cocok.dataset.min || 0),
+                minBerat: parseFloat(cocok.dataset.minberat || 3)
+            };
+        } else {
+            activeVoucher = null;
+        }
+        hitungTotal();
+    });
+
+    radioLayanans.forEach(radio => radio.addEventListener('change', hitungTotal));
     inputJumlah.addEventListener('input', hitungTotal);
     hitungTotal();
 </script>

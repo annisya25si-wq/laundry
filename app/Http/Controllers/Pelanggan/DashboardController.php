@@ -36,7 +36,7 @@ class DashboardController extends Controller
         return view('pelanggan.pesanan-create', compact('layanans', 'vouchers'));
     }
 
-    public function storePesanan(Request $request)
+  public function storePesanan(Request $request)
     {
         $request->validate([
             'layanan_id' => 'required|exists:layanan,id',
@@ -61,6 +61,13 @@ class DashboardController extends Controller
 
             if (!$voucher) {
                 return back()->withInput()->withErrors(['kode_voucher' => 'Kode voucher tidak ditemukan atau sudah tidak aktif.']);
+            }
+
+            $minimalBerat = $voucher->minimal_berat ?? 3;
+            if ($request->jumlah < $minimalBerat) {
+                return back()->withInput()->withErrors([
+                    'kode_voucher' => "Voucher {$voucher->kode_voucher} hanya berlaku untuk pemesanan minimal {$minimalBerat} kg/item."
+                ]);
             }
 
             if ($subtotal < ($voucher->minimal_transaksi ?? 0)) {
