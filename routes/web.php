@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Pelanggan\DashboardController as PelangganDashboardController;
+use App\Http\Controllers\Admin\PesananController as AdminPesananController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use Illuminate\Support\Facades\Route;
 
@@ -23,8 +24,8 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->n
 // Route Khusus Admin
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
-    Route::get('/pesanan', [AdminDashboardController::class, 'index'])->name('pesanan.index');
-    Route::patch('/pesanan/{id}/status', [AdminDashboardController::class, 'updateStatus'])->name('pesanan.updateStatus');
+    Route::get('/pesanan', [AdminPesananController::class, 'index'])->name('pesanan.index');
+    Route::patch('/pesanan/{id}/status', [AdminPesananController::class, 'updateStatus'])->name('pesanan.updateStatus');
     Route::get('/layanan', [AdminDashboardController::class, 'index'])->name('layanan.index');
     Route::get('/voucher', [AdminDashboardController::class, 'index'])->name('voucher.index');
     Route::get('/pembayaran', [AdminDashboardController::class, 'index'])->name('pembayaran.index');
