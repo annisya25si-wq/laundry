@@ -16,9 +16,8 @@
         <div class="row g-3 align-items-center justify-content-between">
             <div class="col-12 col-lg-8">
                 <div class="d-flex flex-wrap gap-2">
-                    <a href="{{ route('admin.pesanan.index') }}"
-                       class="btn btn-sm rounded-pill px-3 {{ !$status ? 'text-white fw-semibold' : 'btn-outline-secondary' }}"
-                       style="{{ !$status ? 'background-color: #e83e8c; border-color: #e83e8c;' : '' }}">
+                 <a href="{{ route('admin.pesanan.index') }}"
+                    class="btn btn-sm rounded-pill px-3 {{ !$status ? 'btn-danger fw-semibold' : 'btn-outline-secondary' }}">
                         Semua <span class="badge bg-white text-dark ms-1">{{ $counts['semua'] }}</span>
                     </a>
                     <a href="{{ route('admin.pesanan.index', ['status' => 'menunggu']) }}"
