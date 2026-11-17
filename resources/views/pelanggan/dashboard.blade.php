@@ -61,12 +61,17 @@
                                 <span class="badge bg-pink-soft text-pink px-3 py-2 fs-6 fw-bold">
                                     {{ $pesanan->kode_pesanan ?? '#' . $pesanan->id }}
                                 </span>
+                                <div class="small text-muted mt-1 fw-medium">
+                                    @foreach($pesanan->detailPesanan as $detail)
+                                        {{ $detail->layanan->nama_layanan ?? 'Layanan' }} ({{ $detail->berat }} {{ $detail->layanan->satuan ?? 'kg' }})
+                                    @endforeach
+                                </div>
                             </td>
                             <td class="text-muted small">{{ $pesanan->created_at->format('d M Y, H:i') }}</td>
                             <td class="fw-semibold">Rp {{ number_format($pesanan->total_harga ?? 0, 0, ',', '.') }}</td>
                             <td>
                                 @php
-                                    $status = $pesanan->status ?? 'menunggu';
+                                    $status = $pesanan->status_pesanan ?? $pesanan->status ?? 'menunggu';
                                     $badgeClass = match($status) {
                                         'selesai' => 'bg-success-subtle text-success',
                                         'diproses', 'dicuci' => 'bg-warning-subtle text-warning-emphasis',

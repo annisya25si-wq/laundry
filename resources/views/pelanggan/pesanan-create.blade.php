@@ -63,11 +63,13 @@
                                 } elseif (str_contains($namaLower, 'setrika')) {
                                     $imgUrl = 'https://images.unsplash.com/photo-1582735689369-4fe89db7114c?auto=format&fit=crop&w=300&q=80';
                                 } elseif (str_contains($namaLower, 'express') || str_contains($namaLower, 'kilat')) {
-                                    $imgUrl = 'https://images.unsplash.com/photo-1545173168-9f1947eebb7f?auto=format&fit=crop&w=300&q=80';
-                                } elseif (str_contains($namaLower, 'dry') || str_contains($namaLower, 'jas') || str_contains($namaLower, 'bed')) {
-                                    $imgUrl = 'https://images.unsplash.com/photo-1517677208171-0bc6725a3e60?auto=format&fit=crop&w=300&q=80';
+                                   $imgUrl = asset('guest/assets/img/bg/bg15.jpg');
+                                } elseif (str_contains($namaLower, 'dry') || str_contains($namaLower, 'jas')) {
+                                  $imgUrl = asset('guest/assets/img/bg/bg14.jpg');
+                                  } elseif (str_contains($namaLower, 'bed')) {
+                                  $imgUrl = asset('guest/assets/img/bg/bg13.jpg');
                                 } else {
-                                    $imgUrl = 'https://images.unsplash.com/photo-1604335399105-a0c585fd81a1?auto=format&fit=crop&w=300&q=80';
+                                    $imgUrl = $imgUrl = asset('guest/assets/img/bg/bg2.jpg');
                                 }
                             @endphp
                             <div class="col-sm-6">

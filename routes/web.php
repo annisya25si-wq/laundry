@@ -41,5 +41,6 @@ Route::middleware(['auth', 'role:pelanggan'])->prefix('pelanggan')->name('pelang
     Route::get('/status-laundry', [PelangganDashboardController::class, 'statusLaundry'])->name('status');
     Route::get('/pembayaran', [PelangganDashboardController::class, 'pembayaran'])->name('pembayaran');
     Route::get('/voucher', [PelangganDashboardController::class, 'voucher'])->name('voucher');
+    Route::post('/voucher/klaim', [PelangganDashboardController::class, 'klaimVoucher'])->name('voucher.klaim');
     Route::get('/riwayat', [PelangganDashboardController::class, 'riwayat'])->name('riwayat');
 });

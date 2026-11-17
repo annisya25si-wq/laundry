@@ -146,7 +146,7 @@
                     @csrf
                     <div class="mb-3">
                         <label class="form-label small fw-semibold">Email atau Username</label>
-                        <input type="text" name="login" value="{{ old('login') }}" class="form-control @error('login') is-invalid @enderror" placeholder="admin atau email@contoh.com" required autofocus>
+                        <input type="text" name="login" value="{{ old('login') }}" class="form-control @error('login') is-invalid @enderror" placeholder="Masukkan email atau username Anda" required autofocus>
                         @error('login') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
 
@@ -169,7 +169,7 @@
                 </form>
 
                 <p class="text-center small text-muted mb-0 mt-3">
-                    Belum punya akun pelanggan? <a href="{{ route('register') }}" class="text-pink fw-semibold text-decoration-none">Daftar di sini</a>
+                    Belum punya akun? <a href="{{ route('register') }}" class="text-pink fw-semibold text-decoration-none">Daftar di sini</a>
                 </p>
             </div>
         </div>

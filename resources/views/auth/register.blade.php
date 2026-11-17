@@ -115,7 +115,7 @@
             <div class="col-lg-7 p-4 p-md-5 bg-white">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <div>
-                        <h4 class="fw-bold mb-1 text-dark">Buat Akun Baru</h4>
+                        <h4 class="fw-bold mb-1 text-dark">Daftar Akun Baru</h4>
                         <p class="text-muted small mb-0">Lengkapi data singkat di bawah ini</p>
                     </div>
                     <a href="{{ route('home') }}" class="btn btn-sm btn-light rounded-pill px-3 text-muted">
@@ -133,7 +133,7 @@
 
                     <div class="mb-3">
                         <label class="form-label small fw-semibold">Username</label>
-                        <input type="text" name="username" value="{{ old('username') }}" class="form-control @error('username') is-invalid @enderror" placeholder="Contoh: annisya12" required>
+                        <input type="text" name="username" value="{{ old('username') }}" class="form-control @error('username') is-invalid @enderror" placeholder="Masukkan username" required>
                         @error('username') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
 
@@ -150,7 +150,7 @@
                     </div>
 
                     <button type="submit" class="btn btn-pink w-100 mb-3">
-                        Buat Akun Pelanggan
+                        Daftar Akun
                     </button>
                 </form>
 

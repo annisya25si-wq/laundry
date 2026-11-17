@@ -92,6 +92,7 @@ class DashboardController extends Controller
                 'user_id' => Auth::id(),
                 'voucher_id' => $voucherId,
                 'kode_pesanan' => $kodePesanan,
+                'tanggal_pesan' => now(),
                 'total_harga' => $totalHarga,
                 'diskon' => $diskon,
                 'status_pesanan' => 'menunggu',
@@ -101,6 +102,7 @@ class DashboardController extends Controller
             DetailPesanan::create([
                 'pesanan_id' => $pesanan->id,
                 'layanan_id' => $layanan->id,
+                'berat' => $request->berat ?? $request->jumlah ?? $request->berat_cucian ?? ($subtotal / max(1, $layanan->harga)),
                 'jumlah' => $request->jumlah,
                 'harga_satuan' => $layanan->harga,
                 'subtotal' => $subtotal,
@@ -132,9 +134,55 @@ class DashboardController extends Controller
 
     public function voucher()
     {
-        $vouchers = Voucher::where('status', 'aktif')->latest()->get();
+        // Mengambil seluruh voucher (aktif maupun kedaluwarsa)
+        $vouchers = Voucher::orderByRaw("CASE WHEN status = 'aktif' THEN 0 ELSE 1 END")
+            ->latest()
+            ->get();
 
-        return view('pelanggan.voucher', compact('vouchers'));
+        // Cek berat/jumlah cucian aktif terakhir pelanggan untuk validasi syarat minimal berat
+        $pesananTerakhir = Pesanan::with('detailPesanans')
+            ->where('user_id', Auth::id())
+            ->whereIn('status_pesanan', ['menunggu', 'diproses', 'dicuci', 'disetrika'])
+            ->latest()
+            ->first();
+
+        $beratCucianSaatIni = $pesananTerakhir
+            ? $pesananTerakhir->detailPesanans->sum('jumlah')
+            : null;
+
+        return view('pelanggan.voucher', compact('vouchers', 'beratCucianSaatIni'));
+    }
+
+    public function klaimVoucher(Request $request)
+    {
+        $request->validate([
+            'kode_voucher' => 'required|string|max:50',
+        ], [
+            'kode_voucher.required' => 'Masukkan kode voucher terlebih dahulu.',
+        ]);
+
+        $kode = strtoupper(trim($request->kode_voucher));
+        $voucher = Voucher::where('kode_voucher', $kode)->first();
+
+        if (!$voucher) {
+            return back()->withErrors(['kode_voucher' => "Kode voucher '{$kode}' tidak ditemukan."]);
+        }
+
+        $isExpired = $voucher->status !== 'aktif'
+            || (!empty($voucher->tanggal_berakhir) && \Carbon\Carbon::parse($voucher->tanggal_berakhir)->endOfDay()->lt(now()))
+            || (isset($voucher->kuota) && $voucher->kuota <= 0);
+
+        if ($isExpired) {
+            return back()->withErrors(['kode_voucher' => "Voucher '{$kode}' sudah kedaluwarsa atau kuotanya telah habis."]);
+        }
+
+        $claimed = session('claimed_vouchers', []);
+        if (!in_array($kode, $claimed)) {
+            $claimed[] = $kode;
+            session(['claimed_vouchers' => $claimed]);
+        }
+
+        return back()->with('success', "Voucher {$kode} berhasil diklaim dan siap digunakan!");
     }
 
     public function riwayat()
