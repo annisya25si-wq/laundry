@@ -20,30 +20,41 @@
     </div>
 
     <!-- Ringkasan Status -->
-    <div class="row g-4 mb-4">
-        <div class="col-md-4">
-            <div class="card-pink p-4">
+    <div class="row g-3 mb-4">
+        <div class="col-md-3 col-6">
+            <div class="card-pink p-4 h-100">
                 <span class="text-muted small">Total Riwayat Pesanan</span>
                 <h2 class="fw-bold mt-1 mb-0">{{ $pesanans->count() }}</h2>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="card-pink p-4">
-                <span class="text-muted small">Sedang Diproses / Menunggu Drop-off</span>
-                <h2 class="fw-bold text-pink mt-1 mb-0">{{ $pesananAktif }}</h2>
+        <div class="col-md-3 col-6">
+            <div class="card-pink p-4 h-100">
+                <span class="text-muted small">Menunggu Drop-off</span>
+                <h2 class="fw-bold text-pink mt-1 mb-0">{{ $pesananMenunggu }}</h2>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="card-pink p-4">
+        <div class="col-md-3 col-6">
+            <div class="card-pink p-4 h-100">
+                <span class="text-muted small">Sedang Diproses</span>
+                <h2 class="fw-bold text-warning mt-1 mb-0">{{ $pesananDiproses }}</h2>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="card-pink p-4 h-100">
                 <span class="text-muted small">Selesai & Siap Diambil</span>
                 <h2 class="fw-bold text-success mt-1 mb-0">{{ $pesananSelesai }}</h2>
             </div>
         </div>
     </div>
 
-    <!-- Daftar Pesanan -->
+    <!-- Daftar Pesanan Terbaru -->
     <div class="card-pink p-4">
-        <h5 class="fw-bold mb-3">Daftar Pesanan Saya</h5>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold mb-0">Pesanan Terbaru</h5>
+            <a href="{{ route('pelanggan.riwayat') }}" class="text-pink text-decoration-none small fw-semibold">
+                Lihat Semua Riwayat <i class="bi bi-arrow-right"></i>
+            </a>
+        </div>
         <div class="table-responsive">
             <table class="table align-middle mb-0">
                 <thead class="table-light">
@@ -55,7 +66,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($pesanans as $pesanan)
+                    @forelse($pesanans->take(5) as $pesanan)
                         <tr>
                             <td>
                                 <span class="badge bg-pink-soft text-pink px-3 py-2 fs-6 fw-bold">
@@ -74,7 +85,7 @@
                                     $status = $pesanan->status_pesanan ?? $pesanan->status ?? 'menunggu';
                                     $badgeClass = match($status) {
                                         'selesai' => 'bg-success-subtle text-success',
-                                        'diproses', 'dicuci' => 'bg-warning-subtle text-warning-emphasis',
+                                        'diproses', 'dicuci', 'disetrika' => 'bg-warning-subtle text-warning-emphasis',
                                         default => 'bg-pink-soft text-pink',
                                     };
                                 @endphp

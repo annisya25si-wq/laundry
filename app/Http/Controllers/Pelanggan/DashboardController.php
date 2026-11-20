@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Pelanggan;
 use App\Http\Controllers\Controller;
 use App\Models\DetailPesanan;
 use App\Models\Layanan;
+use App\Models\Pembayaran;
 use App\Models\Pesanan;
 use App\Models\Voucher;
 use Illuminate\Http\Request;
@@ -17,15 +18,20 @@ class DashboardController extends Controller
     public function index()
     {
         $userId = Auth::id();
-
         $pesanans = Pesanan::where('user_id', $userId)
             ->latest()
             ->get();
 
-        $pesananAktif = $pesanans->whereIn('status_pesanan', ['menunggu', 'diproses', 'dicuci', 'disetrika'])->count();
+        $pesananMenunggu = $pesanans->where('status_pesanan', 'menunggu')->count();
+        $pesananDiproses = $pesanans->whereIn('status_pesanan', ['diproses', 'dicuci', 'disetrika'])->count();
         $pesananSelesai = $pesanans->where('status_pesanan', 'selesai')->count();
 
-        return view('pelanggan.dashboard', compact('pesanans', 'pesananAktif', 'pesananSelesai'));
+        return view('pelanggan.dashboard', compact(
+            'pesanans',
+            'pesananMenunggu',
+            'pesananDiproses',
+            'pesananSelesai'
+        ));
     }
 
     public function createPesanan()
@@ -36,7 +42,7 @@ class DashboardController extends Controller
         return view('pelanggan.pesanan-create', compact('layanans', 'vouchers'));
     }
 
-  public function storePesanan(Request $request)
+    public function storePesanan(Request $request)
     {
         $request->validate([
             'layanan_id' => 'required|exists:layanan,id',
@@ -115,8 +121,9 @@ class DashboardController extends Controller
 
     public function statusLaundry()
     {
-        $pesanans = Pesanan::where('user_id', Auth::id())
-            ->whereIn('status_pesanan', ['menunggu', 'diproses', 'dicuci', 'disetrika'])
+        $pesanans = Pesanan::with(['detailPesanan.layanan', 'voucher'])
+            ->where('user_id', Auth::id())
+            ->whereIn('status_pesanan', ['menunggu', 'diproses', 'dicuci', 'disetrika', 'selesai'])
             ->latest()
             ->get();
 
@@ -125,29 +132,93 @@ class DashboardController extends Controller
 
     public function pembayaran()
     {
-        $pesanans = Pesanan::where('user_id', Auth::id())
+        $pesanans = Pesanan::with(['detailPesanan.layanan', 'voucher', 'pembayaran'])
+            ->where('user_id', Auth::id())
             ->latest()
             ->get();
 
-        return view('pelanggan.pembayaran', compact('pesanans'));
+        $totalBelumBayar = $pesanans->filter(function ($p) {
+            $status = $p->pembayaran->status_pembayaran ?? 'belum_bayar';
+            return $status === 'belum_bayar';
+        })->sum('total_harga');
+
+        $menungguVerifikasi = $pesanans->filter(function ($p) {
+            return ($p->pembayaran->status_pembayaran ?? '') === 'menunggu_verifikasi';
+        })->count();
+
+        $totalLunas = $pesanans->filter(function ($p) {
+            return ($p->pembayaran->status_pembayaran ?? '') === 'lunas';
+        })->sum('total_harga');
+
+        return view('pelanggan.pembayaran', compact(
+            'pesanans',
+            'totalBelumBayar',
+            'menungguVerifikasi',
+            'totalLunas'
+        ));
+    }
+
+    public function prosesPembayaran(Request $request, $id)
+    {
+        $pesanan = Pesanan::where('user_id', Auth::id())->findOrFail($id);
+
+        $request->validate([
+            'metode_pembayaran' => 'required|in:cash,transfer',
+            'bukti_pembayaran' => 'required_if:metode_pembayaran,transfer|nullable|image|mimes:jpg,jpeg,png|max:2048',
+        ], [
+            'metode_pembayaran.required' => 'Pilih metode pembayaran terlebih dahulu.',
+            'bukti_pembayaran.required_if' => 'Harap unggah foto bukti transfer.',
+            'bukti_pembayaran.image' => 'File harus berupa gambar (JPG/PNG).',
+            'bukti_pembayaran.max' => 'Ukuran gambar maksimal 2 MB.',
+        ]);
+
+        if ($request->metode_pembayaran === 'transfer') {
+            $path = $request->file('bukti_pembayaran')->store('bukti-pembayaran', 'public');
+
+            Pembayaran::updateOrCreate(
+                ['pesanan_id' => $pesanan->id],
+                [
+                    'user_id' => Auth::id(),
+                    'jumlah' => $pesanan->total_harga,
+                    'metode_pembayaran' => 'transfer',
+                    'status_pembayaran' => 'menunggu_verifikasi',
+                    'tanggal_pembayaran' => now(),
+                    'bukti_pembayaran' => $path,
+                ]
+            );
+
+            return back()->with('success', 'Bukti transfer berhasil dikirim! Admin akan segera memverifikasi pembayaran Anda.');
+        }
+
+        Pembayaran::updateOrCreate(
+            ['pesanan_id' => $pesanan->id],
+            [
+                'user_id' => Auth::id(),
+                'jumlah' => $pesanan->total_harga,
+                'metode_pembayaran' => 'cash',
+                'status_pembayaran' => 'belum_bayar',
+                'tanggal_pembayaran' => now(),
+                'bukti_pembayaran' => null,
+            ]
+        );
+
+        return back()->with('success', 'Metode pembayaran Cash dipilih. Silakan bayar tunai saat di outlet.');
     }
 
     public function voucher()
     {
-        // Mengambil seluruh voucher (aktif maupun kedaluwarsa)
         $vouchers = Voucher::orderByRaw("CASE WHEN status = 'aktif' THEN 0 ELSE 1 END")
             ->latest()
             ->get();
 
-        // Cek berat/jumlah cucian aktif terakhir pelanggan untuk validasi syarat minimal berat
-        $pesananTerakhir = Pesanan::with('detailPesanans')
+        $pesananTerakhir = Pesanan::with('detailPesanan')
             ->where('user_id', Auth::id())
             ->whereIn('status_pesanan', ['menunggu', 'diproses', 'dicuci', 'disetrika'])
             ->latest()
             ->first();
 
         $beratCucianSaatIni = $pesananTerakhir
-            ? $pesananTerakhir->detailPesanans->sum('jumlah')
+            ? $pesananTerakhir->detailPesanan->sum('jumlah')
             : null;
 
         return view('pelanggan.voucher', compact('vouchers', 'beratCucianSaatIni'));
